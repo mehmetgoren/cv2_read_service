@@ -46,7 +46,7 @@ def _close_stream(source: SourceBase, name: str, rtsp_type: int):
 def _publish(img: np.array, name: str, identifier: str):
     img_str = base64.b64encode(cv2.imencode('.jpg', img)[1]).decode()
     dic = {'name': name, 'img': img_str, 'source': identifier}
-    _event_bus.publish(json.dumps(dic, ensure_ascii=False, indent=4))
+    _event_bus.publish_async(json.dumps(dic, ensure_ascii=False, indent=4))
     logger.info(f'camera ({name}) -> an image has been send to broker at {datetime.now()}')
 
 
