@@ -150,7 +150,7 @@ def _init_cameras() -> (List[Job], BaseException):
         sources = _source_repository.get_all()
         for source in sources:
             name = source.get_name()
-            rtsp_address = source.get_rtsp_address()
+            rtsp_address = source.get_address()
             fps, buffer_size = config.source_reader.fps, config.source_reader.buffer_size
             job = _queue.enqueue(_read, fps, buffer_size, name, rtsp_address, source.get_id(), job_timeout=-1)
             jobs.append(job)

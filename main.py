@@ -42,7 +42,7 @@ def check_sources() -> List[SourceModel]:
 
     sources = rep.get_all()
     for source in sources:
-        print(source.rtsp_address)
+        print(source.address)
     return sources
 
 
