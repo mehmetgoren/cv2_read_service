@@ -74,11 +74,6 @@ class GeneralConfig:
     def __init__(self):
         self.root_folder_path: str = '/mnt/sde1'
         self.heartbeat_interval: int = 30
-        # self.stream: str = '/mnt/sde1/live'
-        # self.record: str = '/mnt/sde1/playback'
-        # self.detected_folder: str = '/mnt/sde1/detected/'
-        # self.face_recog_folder: str = '/mnt/sde1/facial_recognition'
-        # self.json_data = '/mnt/sde1/data or events'
 
 
 class FFmpegConfig:
