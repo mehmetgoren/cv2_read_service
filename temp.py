@@ -6,7 +6,7 @@ from PIL import Image  # info: PIL was added only for this benchmarking
 from numpy import asarray
 
 
-def bench_PIL_vs_cv2():
+def bench_pil_vs_cv2():
     img_path = '/home/gokalp/Downloads/download (43)'
     image = Image.open(img_path)
     numpy_img = asarray(image)
