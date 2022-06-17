@@ -41,4 +41,4 @@ def bench_pil_vs_cv2():
     # PIL: 637581
 
 
-bench_PIL_vs_cv2()
+bench_pil_vs_cv2()
