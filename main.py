@@ -1,7 +1,7 @@
 from typing import List
 
-from common.data.source_model import SourceModel
-from common.data.source_repository import SourceRepository
+from stream.stream_model import StreamModel
+from stream.stream_repository import StreamRepository
 from common.utilities import logger, crate_redis_connection, RedisDb
 from common.data.heartbeat_repository import HeartbeatRepository
 from core.source_reader import start
@@ -12,7 +12,7 @@ from core.source_reader import start
 #     return val
 
 
-def check_sources() -> List[SourceModel]:
+def check_streams() -> List[StreamModel]:
     # user = 'admin'
     # pwd = 'a12345678'
     # ip = '192.168.0.108'
@@ -21,7 +21,7 @@ def check_sources() -> List[SourceModel]:
     #     rep.add(DahuaDvrRtspModel(get_id(), j + 1, user, pwd, ip))
 
     connection = crate_redis_connection(RedisDb.MAIN)
-    rep = SourceRepository(connection)
+    rep = StreamRepository(connection)
     # # rep.flush_db()
     #
     # source = Source(get_id(), 'Concord IPC', 'concord', ConcordIpcRtspModel(get_id(), 'concord', 'admin', 'admin123456',
@@ -40,18 +40,19 @@ def check_sources() -> List[SourceModel]:
     #                              f'192.168.0.{ip_start + j}').create_rtsp_address())
     #     rep.add(source)
 
-    sources = rep.get_all()
-    for source in sources:
-        print(source.address)
-    return sources
+    streams = rep.get_all()
+    for stream in streams:
+        if stream.is_opencv_persistent_snapshot_enabled():
+            print(stream.address)
+    return streams
 
 
 def main():
     service_name = 'cv2_read_service'
     heartbeat = HeartbeatRepository(crate_redis_connection(RedisDb.MAIN), service_name)
     heartbeat.start()
-    if len(check_sources()) == 0:
-        logger.warning(f'No source has been found for {service_name}, which is now is exiting...')
+    if len(check_streams()) == 0:
+        logger.warning(f'No stream has been found for {service_name}, which is now is exiting...')
     logger.info(f'{service_name} will start soon')
     start()
 

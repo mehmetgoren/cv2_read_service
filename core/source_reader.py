@@ -18,7 +18,7 @@ from typing import List
 from common.data.service_repository import ServiceRepository
 from common.event_bus.event_bus import EventBus
 from common.utilities import logger, config, crate_redis_connection, RedisDb
-from common.data.source_repository import SourceRepository
+from stream.stream_repository import StreamRepository
 from core.data.jober_repository import Jober, JoberRepository
 from core.data.failed_repository import FailedRepository
 from core.sources import Cv2RtspSource, SourceBase
@@ -26,7 +26,7 @@ from core.sources import Cv2RtspSource, SourceBase
 _connection_main = crate_redis_connection(RedisDb.MAIN)
 _connection_rq = crate_redis_connection(RedisDb.RQ2)
 _queue = Queue(connection=_connection_rq)
-_source_repository = SourceRepository(_connection_main)
+_stream_repository = StreamRepository(_connection_main)
 _jober_rep = JoberRepository(_connection_rq)
 _failed_rep = FailedRepository(_connection_rq)
 _event_bus = EventBus('read_service')
@@ -43,18 +43,18 @@ def _close_stream(source: SourceBase, name: str, rtsp_type: int):
     logger.error(f'camera ({name}) has been stopped and it should work again with retry')
 
 
-def _publish(img: np.array, name: str, identifier: str):
+def _publish(img: np.array, name: str, identifier: str, ai_clip_enabled: bool):
     img_str = base64.b64encode(cv2.imencode('.jpg', img)[1]).decode()
-    dic = {'name': name, 'img': img_str, 'source': identifier}
+    dic = {'name': name, 'img': img_str, 'source': identifier, 'ai_clip_enabled': ai_clip_enabled}
     _event_bus.publish_async(json.dumps(dic, ensure_ascii=False, indent=4))
     logger.info(f'camera ({name}) -> an image has been send to broker at {datetime.now()}')
 
 
-def _read(fps: int, buffer_size: int, name: str, rtsp_address: str, identifier: str):
+def _read(fps: int, buffer_size: int, identifier: str, name: str, rtsp_address: str, width: int, height: int, ai_clip_enabled: bool):
     me_job = get_current_job()
     ex = None
     try:
-        source = Cv2RtspSource(name, rtsp_address)
+        source = Cv2RtspSource(name, rtsp_address, width, height)
         source.set_buffer_size(buffer_size)
         prev = 0
         logger.info(f"cv2 source has been opened, capturing will be starting now, camera no:  {name}, url: {rtsp_address}")
@@ -66,7 +66,7 @@ def _read(fps: int, buffer_size: int, name: str, rtsp_address: str, identifier: 
                 break
             if time_elapsed > 1. / fps:
                 prev = time.time()
-                _publish(img, name, identifier)
+                _publish(img, name, identifier, ai_clip_enabled)
     except BaseException as e:
         ex = e
     finally:
@@ -78,7 +78,7 @@ def _read(fps: int, buffer_size: int, name: str, rtsp_address: str, identifier: 
         model.worker_name = me_job.worker_name
         model.worker_pid = os.getpid()
         model.starter_pid = psutil.Process(os.getpid()).ppid()
-        model.args = f'{fps}º{buffer_size}º{name}º{rtsp_address}º{identifier}'
+        model.args = f'{fps}º{buffer_size}º{identifier}º{name}º{rtsp_address}º{width}º{height}º{ai_clip_enabled}'
         model.exception_msg = str(ex) if ex is not None else ''
         _jober_rep.add(model)
         _failed_rep.add_read(name, rtsp_address)
@@ -123,7 +123,7 @@ def _check_workers():
 
                 try:
                     args = failed.args.split('º')
-                    job = _queue.enqueue(_read, int(args[0]), int(args[1]), args[2], args[3], args[4],
+                    job = _queue.enqueue(_read, int(args[0]), int(args[1]), args[2], args[3], args[4], int(args[5]), int(args[6]), bool(args[7]),
                                          job_timeout=-1)
                     _start_workers([job])
                 except BaseException as ex:
@@ -144,15 +144,39 @@ def _delete_all():
 
 
 def _init_cameras() -> (List[Job], BaseException):
+    def get_address(s):
+        if len(s.rtmp_address) == 0:
+            return s.address
+        ffmpeg_service = ServiceRepository(_connection_main).get('ffmpeg_service')
+        if ffmpeg_service is None:
+            return s.address
+        ffmpeg_service_ip = ffmpeg_service.ip_address
+        if len(ffmpeg_service_ip) == 0:
+            return s.address
+        return s.rtmp_address.replace('127.0.0.1', ffmpeg_service_ip)
+
     jobs: List[Job] = []
     err = None
     try:
-        sources = _source_repository.get_all()
-        for source in sources:
-            name = source.get_name()
-            rtsp_address = source.get_address()
-            fps, buffer_size = config.source_reader.fps, config.source_reader.buffer_size
-            job = _queue.enqueue(_read, fps, buffer_size, name, rtsp_address, source.get_id(), job_timeout=-1)
+        streams = _stream_repository.get_all()
+        for stream in streams:
+            if not stream.is_opencv_persistent_snapshot_enabled():
+                logger.warn(f"id ({stream.id}) name ({stream.name}) persistent reader was not enabled.")
+                continue
+            fps = stream.snapshot_frame_rate
+            if fps == 0:
+                logger.warn(f"id ({stream.id}) name ({stream.name}) persistent reader was not enabled since fps was set to zero.")
+                continue
+            rtsp_address = get_address(stream)
+            if len(rtsp_address) == 0:
+                logger.warn(f"id ({stream.id}) name ({stream.name}) has no valid address.")
+                continue
+
+            name = stream.name
+            buffer_size = config.source_reader.buffer_size
+            job = _queue.enqueue(_read, fps, buffer_size, stream.id, name, rtsp_address, stream.snapshot_width, stream.snapshot_height, stream.ai_clip_enabled,
+                                 job_timeout=-1)
+            logger.warn(f"id ({stream.id}) name ({stream.name}) address ({rtsp_address}) has been queued.")
             jobs.append(job)
     except BaseException as ex:
         logger.error(ex)
@@ -197,7 +221,7 @@ def start():
     _delete_all()
     try:
         service_repository = ServiceRepository(_connection_main)
-        service_repository.add('cv2_read_service', 'The The OpenCV Service®')
+        service_repository.add('cv2_read_service', 'The OpenCV Persistent Reader Service®')
         checker_job = _add_checker_job()
         _start_workers([checker_job])
         jobs, err = _init_cameras()

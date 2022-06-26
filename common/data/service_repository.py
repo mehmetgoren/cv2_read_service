@@ -28,3 +28,11 @@ class ServiceRepository(BaseRepository):
             model: ServiceModel = self.from_redis(ServiceModel(str(key).split(':')[1]), dic)
             models.append(model)
         return models
+
+    def get(self, service_name: str) -> ServiceModel:
+        key = self._get_key(service_name)
+        dic = self.connection.hgetall(key)
+        if not dic:
+            return None
+        model: ServiceModel = self.from_redis(ServiceModel(str(key).split(':')[1]), dic)
+        return model

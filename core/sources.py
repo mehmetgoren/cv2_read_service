@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 import cv2
 import numpy as np
 
-from common.utilities import logger
+from common.utilities import logger, config
 
 
 class SourceBase(ABC):
@@ -87,12 +87,17 @@ class VideoCaptureDaemon(threading.Thread):
 
 # do not catch any exception. RQ retry mechanism will take care of it
 class Cv2RtspSource(SourceBase):
-    def __init__(self, name: str, rtsp_address: str):
+    def __init__(self, name: str, rtsp_address: str, width: int, height: int):
         self.name = name
         self.rtsp_address = rtsp_address
+        self.width: int = width
+        self.height: int = height
+        self.dim = (width, height)
         self.timeout = 10
         self.is_capturing_working = True
         self.cam = self.get_video_capture()  # cv2.VideoCapture(rtsp_address)
+        self.resize_img = config.source_reader.resize_img
+        self.set_open_cv_size()
         self.type_name = None
 
     def get_video_capture(self):
@@ -121,7 +126,8 @@ class Cv2RtspSource(SourceBase):
             logger.error(f'camera ({self.name}) could not capture any frame and is now being released')
             return None
         else:
-            return numpy_img
+            # cv2.resize costs too much CPU time
+            return numpy_img if not self.resize_img else cv2.resize(numpy_img, self.dim, interpolation=cv2.INTER_AREA)
 
     def is_closed(self) -> bool:
         return not self.cam.isOpened()
@@ -129,7 +135,6 @@ class Cv2RtspSource(SourceBase):
     def close(self):
         self.cam.release()
 
-    # todo open it for jetson nano
-    # def set_open_cv_size(self):
-    #     self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-    #     self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    def set_open_cv_size(self):
+        self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
+        self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
