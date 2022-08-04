@@ -27,7 +27,7 @@ class StreamModel:
         self.rtmp_container_ports: str = ''
         self.rtmp_container_commands: str = ''
 
-        self.ffmpeg_reader_pid: int = 0
+        self.mp_ffmpeg_reader_owner_pid: int = 0
         self.ffmpeg_reader_frame_rate: int = 1
         self.ffmpeg_reader_width: int = 640
         self.ffmpeg_reader_height: int = 360
@@ -40,8 +40,8 @@ class StreamModel:
 
         # FFmpeg snapshot for AI.
         self.snapshot_enabled: bool = False
-        self.snapshot_type: SnapshotType = SnapshotType.FFmpeg
         self.snapshot_pid: int = 0
+        self.snapshot_type: SnapshotType = SnapshotType.FFmpeg
         self.snapshot_frame_rate: int = 1
         self.snapshot_width: int = 640
         self.snapshot_height: int = 360
@@ -99,8 +99,5 @@ class StreamModel:
     def is_ai_clip_enabled(self) -> bool:
         return self.snapshot_enabled and self.ai_clip_enabled
 
-    def is_ffmpeg_reader_enabled(self) -> bool:
-        return self.stream_type == StreamType.FFMPEG_READER
-
-    def is_direct_reader_enabled(self) -> bool:
-        return self.stream_type == StreamType.DIRECT_READER
+    def is_mp_ffmpeg_pipe_reader_enabled(self) -> bool:
+        return self.stream_type == StreamType.PIPE_READER
