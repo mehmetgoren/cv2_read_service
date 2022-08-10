@@ -147,7 +147,7 @@ def _init_cameras() -> (List[Job], BaseException):
     def get_address(s):
         if len(s.rtmp_address) == 0:
             return s.address
-        ffmpeg_service = ServiceRepository(_connection_main).get('ffmpeg_service')
+        ffmpeg_service = ServiceRepository(_connection_main).get('ffmpeg_service', 'cv2_read_service-instance')
         if ffmpeg_service is None:
             return s.address
         ffmpeg_service_ip = ffmpeg_service.ip_address
@@ -221,7 +221,7 @@ def start():
     _delete_all()
     try:
         service_repository = ServiceRepository(_connection_main)
-        service_repository.add('cv2_read_service', 'The OpenCV Persistent Reader Service®')
+        service_repository.add('cv2_read_service', 'cv2_read_service-instance', 'The OpenCV Persistent Reader Service®')
         checker_job = _add_checker_job()
         _start_workers([checker_job])
         jobs, err = _init_cameras()
