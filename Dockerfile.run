@@ -1,4 +1,4 @@
 gokalpgoren
     amd64:
         docker build -t gokalpgoren/cv2_read_service:v1.0.0-amd64 .
-        docker run -it --restart unless-stopped --name cv2_read_service-instance --net host gokalpgoren/cv2_read_service:v1.0.0-amd64
+        docker run -it --restart unless-stopped --name cv2_read_service-instance --net host -e TZ=Europe/Istanbul gokalpgoren/cv2_read_service:v1.0.0-amd64
