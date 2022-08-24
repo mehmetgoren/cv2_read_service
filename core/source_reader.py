@@ -161,22 +161,22 @@ def _init_cameras() -> (List[Job], BaseException):
         streams = _stream_repository.get_all()
         for stream in streams:
             if not stream.is_opencv_persistent_snapshot_enabled():
-                logger.warn(f"id ({stream.id}) name ({stream.name}) persistent reader was not enabled.")
+                logger.warning(f"id ({stream.id}) name ({stream.name}) persistent reader was not enabled.")
                 continue
             fps = stream.snapshot_frame_rate
             if fps == 0:
-                logger.warn(f"id ({stream.id}) name ({stream.name}) persistent reader was not enabled since fps was set to zero.")
+                logger.warning(f"id ({stream.id}) name ({stream.name}) persistent reader was not enabled since fps was set to zero.")
                 continue
             rtsp_address = get_address(stream)
             if len(rtsp_address) == 0:
-                logger.warn(f"id ({stream.id}) name ({stream.name}) has no valid address.")
+                logger.warning(f"id ({stream.id}) name ({stream.name}) has no valid address.")
                 continue
 
             name = stream.name
             buffer_size = config.source_reader.buffer_size
             job = _queue.enqueue(_read, fps, buffer_size, stream.id, name, rtsp_address, stream.snapshot_width, stream.snapshot_height, stream.ai_clip_enabled,
                                  job_timeout=-1)
-            logger.warn(f"id ({stream.id}) name ({stream.name}) address ({rtsp_address}) has been queued.")
+            logger.warning(f"id ({stream.id}) name ({stream.name}) address ({rtsp_address}) has been queued.")
             jobs.append(job)
     except BaseException as ex:
         logger.error(ex)

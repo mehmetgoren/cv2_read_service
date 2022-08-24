@@ -52,7 +52,7 @@ def main():
     heartbeat = HeartbeatRepository(crate_redis_connection(RedisDb.MAIN), service_name)
     heartbeat.start()
     if len(check_streams()) == 0:
-        logger.warn(f'No stream has been found for {service_name}, which is now is exiting...')
+        logger.warning(f'No stream has been found for {service_name}, which is now is exiting...')
     logger.info(f'{service_name} will start soon')
     start()
 
