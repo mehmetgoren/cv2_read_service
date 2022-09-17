@@ -71,3 +71,9 @@ class TapoC200(GenericRtspModel):
     def __init__(self, identifier: str, name: str, user: str, pwd: str, ip: str):
         super().__init__(identifier, name, f'rtsp://{user}:{pwd}@{ip}:554/stream1')
         self.brand = 'TP Link Tapo C200 1080P'
+
+
+class HikVision(GenericRtspModel):
+    def __init__(self, identifier: str, name: str, user: str, pwd: str, ip: str):
+        super().__init__(identifier, name, f'rtsp://{user}:{pwd}@{ip}:554/Streaming/Channels/101')
+        self.brand = 'HIKVISION LTD'
