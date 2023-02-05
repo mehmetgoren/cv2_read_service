@@ -2,3 +2,6 @@ gokalpgoren
     amd64:
         docker build -t gokalpgoren/cv2_read_service:v1.0.0-amd64 .
         docker run -it --restart unless-stopped --name cv2_read_service-instance --net host -e TZ=Europe/Istanbul gokalpgoren/cv2_read_service:v1.0.0-amd64
+    raspi4:
+        docker build -t gokalpgoren/cv2_read_service:v1.0.0-arm64v8 -f Dockerfile.jeton .
+        docker run -it --restart unless-stopped --name cv2_read_service-instance --net host -e TZ=Europe/Istanbul gokalpgoren/cv2_read_service:v1.0.0-arm64v8
