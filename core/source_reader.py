@@ -145,7 +145,7 @@ def _delete_all():
 
 def _init_cameras() -> (List[Job], BaseException):
     def get_address(s):
-        if len(s.rtmp_address) == 0:
+        if len(s.ms_address) == 0:
             return s.address
         ffmpeg_service = ServiceRepository(_connection_main).get('ffmpeg_service', 'cv2_read_service-instance')
         if ffmpeg_service is None:
@@ -153,7 +153,7 @@ def _init_cameras() -> (List[Job], BaseException):
         ffmpeg_service_ip = ffmpeg_service.ip_address
         if len(ffmpeg_service_ip) == 0:
             return s.address
-        return s.rtmp_address.replace('127.0.0.1', ffmpeg_service_ip)
+        return s.ms_address.replace('127.0.0.1', ffmpeg_service_ip)
 
     jobs: List[Job] = []
     err = None
